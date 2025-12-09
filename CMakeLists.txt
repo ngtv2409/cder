@@ -6,10 +6,25 @@ set(CMAKE_CXX_STANDARD 99)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-add_library(
-    ${PROJECT_NAME}
-    VERSION ${PROJECT_VERSION}
-    SOVERSION ${PROJECT_VERSION_MAJOR}
+set(SUBMODULE_DIRS
+    libs/CLI11
+    libs/rapidjson
 )
 
-target_include_directories(${PROJECT_NAME} inc)
+foreach(dir ${SUBMODULE_DIRS})
+    if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/CMakeLists.txt")
+        message(FATAL_ERROR
+            "Missing submodule: ${dir}\n"
+            "Run:\n"
+            "  git submodule update --init --recursive"
+        )
+    endif()
+endforeach()
+foreach(dir ${SUBMODULE_DIRS})
+    include_directories(${dir}/include)
+endforeach()
+
+add_executable(
+    cder
+)
+target_include_directories(cder PRIVATE include)
