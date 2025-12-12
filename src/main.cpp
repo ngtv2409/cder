@@ -1,9 +1,11 @@
 #include "Config.hpp"
+#include "main.hpp"
+#include "mark.hpp"
 
 #include "rapidjson/error/en.h"
-#include "rapidjson/rapidjson.h"
 #include "rapidjson/document.h"
 #include "rapidjson/filereadstream.h"
+#include "rapidjson/writer.h"
 #include "rapidjson/filewritestream.h"
 namespace rj = rapidjson;
 
@@ -15,6 +17,8 @@ namespace rj = rapidjson;
 #include <cstdlib>
 #include <filesystem>
 namespace fs = std::filesystem;
+
+rj::Document cder::db::marks;
 
 int main(int argc, const char **argv) {
 /* rapidjson stream buffer */
@@ -46,10 +50,9 @@ int main(int argc, const char **argv) {
     }
 
     /* Read DB */
-    rj::Document db_marks;
     fs::path db_marks_path = fs::path(dbdir) / "marks.json";
     if (! fs::exists(db_marks_path)) {
-        db_marks.SetObject();
+        cder::db::marks.SetObject();
     } else {
         std::FILE *fp = std::fopen(db_marks_path.c_str(), "rb");
         if (! fp) {
@@ -57,15 +60,40 @@ int main(int argc, const char **argv) {
             return 1;
         }
         rj::FileReadStream is(fp, buffer, sizeof(buffer));
-        if (db_marks.ParseStream(is).HasParseError()) {
+        if (cder::db::marks.ParseStream(is).HasParseError()) {
             fprintf(stderr, "\nError(offset %u): %s\n", 
-            (unsigned)db_marks.GetErrorOffset(),
-            rj::GetParseError_En(db_marks.GetParseError()));
+            (unsigned)cder::db::marks.GetErrorOffset(),
+            rj::GetParseError_En(cder::db::marks.GetParseError()));
+        }
+        // is not object, ignore and set empty
+        if (! cder::db::marks.IsObject()) {
+            cder::db::marks.SetObject();
         }
         std::fclose(fp);
     }
 /* End Setup database }}}*/
 
+/* Setup CLI */
+    CLI::App app{"cder is a smart wrapper on cd", "cder"};
+    app.require_subcommand(1);
+
+    cder::mark::cli::setup_options(app);
+
+    CLI11_PARSE(app, argc, argv);
+/* End Setup CLI */
+
+/* Finallize database */
+    {
+        std::FILE *fp = std::fopen(db_marks_path.c_str(), "wb");
+        if (! fp) {
+            std::perror("Error");
+            return 1;
+        }
+        rj::FileWriteStream os(fp, buffer, sizeof(buffer));
+        rj::Writer<rj::FileWriteStream> writer(os);
+        cder::db::marks.Accept(writer);
+        std::fclose(fp);
+    }
 
     return 0;
 }
