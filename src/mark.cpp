@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "rapidjson/rapidjson.h"
+#include <string>
 #include "mark.hpp"
 using namespace cder::mark;
 
@@ -16,24 +17,55 @@ void cli::setup_options(CLI::App &app) {
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
     mark->require_subcommand(1);
 
-    AddOpt addopt{std::string("\0"), std::string("\0")};
+    static AddOpt addopt{std::string("\0"), std::string("\0")};
     CLI::App *add = mark->add_subcommand("add", "add a bookmark");
     add->add_option("alias", addopt.alias, "the name of the mark")->required();
     add->add_option("path", addopt.path, "the path to mark")->required();
-    add->callback([&addopt]() {
+    add->callback([]() {
         Bookmark m{addopt.alias, addopt.path};
         Error = pushMark(m);
+    });
+
+    static GetOpt getopt{std::string("\0")};
+    CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark");
+    get->add_option("alias", getopt.alias, "the name of the mark")->required();
+    get->callback([]() {
+        Bookmark m = getMark(getopt.alias);
+        if (m.alias.empty()) {
+            std::cerr << "Error: No such bookmark in database" << std::endl;
+            Error = 1;
+        } else {
+            std::cout << m.path << '\n';
+        }
     });
 }
 
 namespace cder::mark {
+Bookmark getMark(std::string &alias) {
+    const rj::Document &db = cder::db::marks;
+    if (! db.HasMember("bookmarks")) {
+        return {std::string{"\0"},std::string{"\0"}};
+    }
+    const rj::Value &obj = db["bookmarks"];
+    if (! obj.IsObject()) {
+        return {std::string{"\0"},std::string{"\0"}};
+    }
+    if (! obj.HasMember(alias.c_str())) {
+        return {std::string{"\0"},std::string{"\0"}};
+    }
+    if (! obj[alias.c_str()].IsString()) {
+        return {std::string{"\0"},std::string{"\0"}};
+    }
+    Bookmark m{alias, obj[alias.c_str()].GetString()};
+    return m;
+}
+
 std::vector<Bookmark> getMarks() {
     const rj::Document &db = cder::db::marks;
     if (! db.HasMember("bookmarks")) {
         return std::vector<Bookmark>({});
     }
     const rj::Value &obj = db["bookmarks"];
-    // expects array
     if (! obj.IsObject()) {
         return std::vector<Bookmark>({});
     }
@@ -60,14 +92,13 @@ int pushMark(Bookmark &m) {
                      alloc);
     }
     rj::Value &obj = db["bookmarks"];
-    // expects array
     if (! obj.IsObject()) {
         obj.SetObject();
     }
 
     auto path = std::filesystem::absolute(m.path);
     if (! std::filesystem::exists(path)) {
-        std::cerr << "Error: no such directory\n";
+        std::cerr << "Error: no such directory" << std::endl;
         return 1;
     }
 

@@ -10,6 +10,9 @@ namespace cder {
                 std::string alias;
                 std::string path;
             };
+            struct GetOpt {
+                std::string alias;
+            };
 
             void setup_options(CLI::App &app);
         }
@@ -18,6 +21,7 @@ namespace cder {
             std::string alias;
             std::string path;
         };
+        Bookmark getMark(std::string &alias);
         /*
             Get all bookmarks from db as a vector
          */
