@@ -19,6 +19,7 @@ namespace rj = rapidjson;
 namespace fs = std::filesystem;
 
 rj::Document cder::db::marks;
+int cder::Error = 0;
 
 int main(int argc, const char **argv) {
 /* rapidjson stream buffer */
@@ -95,5 +96,5 @@ int main(int argc, const char **argv) {
         std::fclose(fp);
     }
 
-    return 0;
+    return cder::Error;
 }

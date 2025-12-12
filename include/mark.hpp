@@ -22,7 +22,7 @@ namespace cder {
             Get all bookmarks from db as a vector
          */
         std::vector<Bookmark> getMarks();
-        void pushMark(Bookmark &);
+        int pushMark(Bookmark &);
     }
 }
 

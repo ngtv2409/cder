@@ -10,6 +10,7 @@ namespace rj = rapidjson;
 
 #include <vector>
 #include <filesystem>
+#include <iostream>
 
 void cli::setup_options(CLI::App &app) {
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
@@ -21,7 +22,7 @@ void cli::setup_options(CLI::App &app) {
     add->add_option("path", addopt.path, "the path to mark")->required();
     add->callback([&addopt]() {
         Bookmark m{addopt.alias, addopt.path};
-        pushMark(m);
+        Error = pushMark(m);
     });
 }
 
@@ -50,7 +51,7 @@ std::vector<Bookmark> getMarks() {
     return vec;
 }
 
-void pushMark(Bookmark &m) {
+int pushMark(Bookmark &m) {
     rj::Document &db = cder::db::marks;
     auto &alloc = db.GetAllocator();
     if (! db.HasMember("bookmarks")) {
@@ -64,15 +65,21 @@ void pushMark(Bookmark &m) {
         obj.SetObject();
     }
 
+    auto path = std::filesystem::absolute(m.path);
+    if (! std::filesystem::exists(path)) {
+        std::cerr << "Error: no such directory\n";
+        return 1;
+    }
+
     if (obj.HasMember(m.alias.c_str())) {
-        obj[m.alias.c_str()] = rj::Value(
-                std::filesystem::absolute(m.path).c_str(), alloc);
+        obj[m.alias.c_str()] = rj::Value(path.c_str(), alloc);
     } else {
         obj.AddMember(
             rj::Value(m.alias.c_str(), alloc),
-            rj::Value(std::filesystem::absolute(m.path).c_str(), alloc),
+            rj::Value(path.c_str(), alloc),
             alloc
         );
     }
+    return 0;
 }
 }
