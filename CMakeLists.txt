@@ -27,5 +27,6 @@ endforeach()
 add_executable(
     cder
     src/main.cpp
+    src/mark.cpp
 )
 target_include_directories(cder PRIVATE include)
