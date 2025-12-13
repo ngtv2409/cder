@@ -24,6 +24,9 @@ void cli::setup_options(CLI::App &app) {
     add->callback([]() {
         Bookmark m{addopt.alias, addopt.path};
         Error = pushMark(m);
+        if (Error != 0) {
+            std::cout << "SUC" << std::endl;
+        }
     });
 
     static GetOpt getopt{std::string("\0")};
@@ -32,10 +35,10 @@ void cli::setup_options(CLI::App &app) {
     get->callback([]() {
         Bookmark m = getMark(getopt.alias);
         if (m.alias.empty()) {
-            std::cerr << "Error: No such bookmark in database" << std::endl;
+            std::cerr << "ERR Error: No such bookmark in database" << std::endl;
             Error = 1;
         } else {
-            std::cout << m.path << '\n';
+            std::cout << "SUC PATH " << m.path << '\n';
         }
     });
 }
@@ -98,7 +101,7 @@ int pushMark(Bookmark &m) {
 
     auto path = std::filesystem::absolute(m.path);
     if (! std::filesystem::exists(path)) {
-        std::cerr << "Error: no such directory" << std::endl;
+        std::cerr << "ERR Error: no such directory" << std::endl;
         return 1;
     }
 

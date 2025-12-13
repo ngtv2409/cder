@@ -7,6 +7,7 @@
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/writer.h"
 #include "rapidjson/filewritestream.h"
+#include <memory>
 namespace rj = rapidjson;
 
 #include "CLI/CLI.hpp"
@@ -21,6 +22,13 @@ namespace fs = std::filesystem;
 rj::Document cder::db::marks;
 int cder::Error = 0;
 
+class HELPPrependFmt : public CLI::Formatter {
+  public:
+      std::string make_description(const CLI::App *app) const override {
+        return std::string("HELP ") + app->get_description();
+      }
+};
+
 int main(int argc, const char **argv) {
 /* rapidjson stream buffer */
     char buffer[cder::Config::BufferSize];
@@ -33,19 +41,19 @@ int main(int argc, const char **argv) {
 /*{{{ Setup database */
     char *dbdir_r = std::getenv("CDER_DB_PATH");
     if (! dbdir_r) {
-        std::cerr << "Error: CDER_DB_PATH must be set" << std::endl;
+        std::cerr << "ERR Error: CDER_DB_PATH must be set" << std::endl;
         return 1;
     }
     std::string dbdir(dbdir_r);    
     if (dbdir.empty()) {
-        std::cerr << "Error: CDER_DB_PATH must be set" << std::endl;
+        std::cerr << "ERR Error: CDER_DB_PATH must be set" << std::endl;
         return 1;
     }
     if (! fs::exists(dbdir)) {
         try {
             fs::create_directory(dbdir);
         } catch (const fs::filesystem_error& e) {
-            std::cerr << "Error: " << e.what() << "\n";
+            std::cerr << "ERR Error: " << e.what() << std::endl;
             return 1;
         }
     }
@@ -57,14 +65,13 @@ int main(int argc, const char **argv) {
     } else {
         std::FILE *fp = std::fopen(db_marks_path.c_str(), "rb");
         if (! fp) {
-            std::perror("Error");
+            std::perror("ERR Error");
             return 1;
         }
         rj::FileReadStream is(fp, buffer, sizeof(buffer));
         if (cder::db::marks.ParseStream(is).HasParseError()) {
-            fprintf(stderr, "\nError(offset %u): %s\n", 
-            (unsigned)cder::db::marks.GetErrorOffset(),
-            rj::GetParseError_En(cder::db::marks.GetParseError()));
+            std::cerr << "ERR Error: " << 
+            rj::GetParseError_En(cder::db::marks.GetParseError()) << std::endl;
         }
         // is not object, ignore and set empty
         if (! cder::db::marks.IsObject()) {
@@ -77,17 +84,24 @@ int main(int argc, const char **argv) {
 /* Setup CLI */
     CLI::App app{"cder is a smart wrapper on cd", "cder"};
     app.require_subcommand(1);
+    app.formatter(std::make_shared<HELPPrependFmt>());
 
     cder::mark::cli::setup_options(app);
 
-    CLI11_PARSE(app, argc, argv);
+    try {
+        (app).parse(argc, argv);
+    } catch(const CLI::ParseError &e) {
+        if (e.get_exit_code() != 0)
+            std::cerr << "ERR ";
+        return (app).exit(e);
+    }
 /* End Setup CLI */
 
 /* Finallize database */
     {
         std::FILE *fp = std::fopen(db_marks_path.c_str(), "wb");
         if (! fp) {
-            std::perror("Error");
+            std::perror("ERR Error");
             return 1;
         }
         rj::FileWriteStream os(fp, buffer, sizeof(buffer));
