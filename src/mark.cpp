@@ -38,7 +38,7 @@ void cli::setup_options(CLI::App &app) {
             std::cerr << "ERR Error: No such bookmark in database" << std::endl;
             Error = 1;
         } else {
-            std::cout << "SUC PATH " << m.path << '\n';
+            std::cout << "SUC PATH \"" << m.path << "\"" << std::endl;
         }
     });
 }
