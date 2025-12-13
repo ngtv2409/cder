@@ -2,21 +2,12 @@
 #include "main.hpp"
 #include "mark.hpp"
 
-#include "rapidjson/error/en.h"
-#include "rapidjson/document.h"
-#include "rapidjson/filereadstream.h"
-#include "rapidjson/writer.h"
-#include "rapidjson/filewritestream.h"
-#include <memory>
+#include "PCH/rapidjson_pch.hpp"
 namespace rj = rapidjson;
 
-#include "CLI/CLI.hpp"
+#include "PCH/cli11_pch.hpp"
 
-#include <cstdio>
-#include <iostream>
-#include <string>
-#include <cstdlib>
-#include <filesystem>
+#include "PCH/std_pch.hpp"
 namespace fs = std::filesystem;
 
 rj::Document cder::db::marks;

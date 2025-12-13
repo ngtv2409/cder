@@ -9,6 +9,7 @@ namespace cder {
             struct AddOpt {
                 std::string alias;
                 std::string path;
+                
             };
             struct GetOpt {
                 std::string alias;

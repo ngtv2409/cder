@@ -15,7 +15,7 @@ foreach(dir ${SUBMODULE_DIRS})
     if(NOT EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${dir}/CMakeLists.txt")
         message(FATAL_ERROR
             "Missing submodule: ${dir}\n"
-            "Run:\n"
+            "Run:" << std::endl
             "  git submodule update --init --recursive"
         )
     endif()
@@ -30,3 +30,8 @@ add_executable(
     src/mark.cpp
 )
 target_include_directories(cder PRIVATE include)
+target_precompile_headers(cder 
+    PRIVATE include/PCH/rapidjson_pch.hpp
+    PRIVATE include/PCH/cli11_pch.hpp
+    PRIVATE include/PCH/std_pch.hpp
+)

@@ -1,17 +1,13 @@
 #include "main.hpp"
-#include "rapidjson/rapidjson.h"
-#include <string>
 #include "mark.hpp"
 using namespace cder::mark;
 
-#include "rapidjson/document.h"
+#include "PCH/rapidjson_pch.hpp"
 namespace rj = rapidjson;
 
-#include "CLI/CLI.hpp"
+#include "PCH/cli11_pch.hpp"
 
-#include <vector>
-#include <filesystem>
-#include <iostream>
+#include "PCH/std_pch.hpp"
 
 void cli::setup_options(CLI::App &app) {
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
