@@ -1,5 +1,6 @@
 #include "main.hpp"
 #include "mark.hpp"
+#include "argparser.hpp"
 using namespace cder::mark;
 
 #include "PCH/rapidjson_pch.hpp"
@@ -12,18 +13,32 @@ namespace rj = rapidjson;
 void cli::setup_options(CLI::App &app) {
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
     mark->require_subcommand(1);
+    {
+        static AddOpt addopt{std::string("\0"), std::string("\0")};
+        CLI::App *add = mark->add_subcommand("add", "add a bookmark");
+        add->add_option("alias", addopt.alias, "the name of the mark")->required();
+        add->add_option("path", addopt.path, "the path to mark")->required();
+        add->add_option("-c, --categories", addopt.categories,
+                "the categories to add (space seperated)\n"
+                "Note: remember to quote from shell. -c \"cat1 cat2\""
+        )->default_val("default");
+        add->callback([]() {
+            std::vector<std::string> cat = cder::argparser::vector_str(
+                addopt.categories);
+            if (cat.empty()) {
+                std::cerr <<
+                    "ERR Error: No categories specified" <<std::endl;
+                Error = 1;
+                return;
+            }
 
-    static AddOpt addopt{std::string("\0"), std::string("\0")};
-    CLI::App *add = mark->add_subcommand("add", "add a bookmark");
-    add->add_option("alias", addopt.alias, "the name of the mark")->required();
-    add->add_option("path", addopt.path, "the path to mark")->required();
-    add->callback([]() {
-        Bookmark m{addopt.alias, addopt.path};
-        Error = pushMark(m);
-        if (Error != 0) {
-            std::cout << "SUC" << std::endl;
-        }
-    });
+            Bookmark m{addopt.alias, addopt.path};
+            Error = pushMark(m, cat);
+            if (Error != 0) {
+                std::cout << "SUC" << std::endl;
+            }
+        });
+    }
 
     static GetOpt getopt{std::string("\0")};
     CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark");
@@ -82,18 +97,9 @@ std::vector<Bookmark> getMarks() {
     return vec;
 }
 
-int pushMark(Bookmark &m) {
+int pushMark(Bookmark &m, std::vector<std::string> categories) {
     rj::Document &db = cder::db::marks;
     auto &alloc = db.GetAllocator();
-    if (! db.HasMember("bookmarks")) {
-        db.AddMember(rj::Value("bookmarks", alloc),
-                     rj::Value(rj::kObjectType),
-                     alloc);
-    }
-    rj::Value &obj = db["bookmarks"];
-    if (! obj.IsObject()) {
-        obj.SetObject();
-    }
 
     auto path = std::filesystem::absolute(m.path);
     if (! std::filesystem::exists(path)) {
@@ -101,14 +107,26 @@ int pushMark(Bookmark &m) {
         return 1;
     }
 
-    if (obj.HasMember(m.alias.c_str())) {
-        obj[m.alias.c_str()] = rj::Value(path.c_str(), alloc);
-    } else {
-        obj.AddMember(
-            rj::Value(m.alias.c_str(), alloc),
-            rj::Value(path.c_str(), alloc),
-            alloc
-        );
+    for (const std::string &cat : categories) {
+        if (! db.HasMember(cat.c_str())) {
+            db.AddMember(rj::Value(cat.c_str(), alloc),
+                         rj::Value(rj::kObjectType),
+                         alloc);
+        }
+        rj::Value &obj = db[cat.c_str()];
+        if (! obj.IsObject()) {
+            obj.SetObject();
+        }
+
+        if (obj.HasMember(m.alias.c_str())) {
+            obj[m.alias.c_str()] = rj::Value(path.c_str(), alloc);
+        } else {
+            obj.AddMember(
+                rj::Value(m.alias.c_str(), alloc),
+                rj::Value(path.c_str(), alloc),
+                alloc
+            );
+        }
     }
     return 0;
 }

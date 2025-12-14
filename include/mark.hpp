@@ -1,7 +1,7 @@
-#include "CLI/CLI.hpp"
-#include <string>
-#include <vector>
 #ifndef CDER_MARK_HPP
+
+#include "PCH/cli11_pch.hpp"
+#include "PCH/std_pch.hpp"
 
 namespace cder {
     namespace mark {
@@ -9,10 +9,11 @@ namespace cder {
             struct AddOpt {
                 std::string alias;
                 std::string path;
-                
+                std::string categories;
             };
             struct GetOpt {
                 std::string alias;
+                std::string categories;
             };
 
             void setup_options(CLI::App &app);
@@ -27,7 +28,7 @@ namespace cder {
             Get all bookmarks from db as a vector
          */
         std::vector<Bookmark> getMarks();
-        int pushMark(Bookmark &);
+        int pushMark(Bookmark &, std::vector<std::string> categories);
     }
 }
 
