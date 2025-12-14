@@ -1,7 +1,7 @@
 #include "main.hpp"
 #include "mark.hpp"
 #include "argparser.hpp"
-#include <string>
+#include <vector>
 using namespace cder::mark;
 
 #include "PCH/rapidjson_pch.hpp"
@@ -67,6 +67,34 @@ void cli::setup_options(CLI::App &app) {
                       << std::endl;
         }
     });
+
+    static ListOpt listopt;
+    CLI::App *list = mark->add_subcommand("list", "list all marks in categories");
+    list->add_option("-c, --categories", listopt.categories,
+            "the categories to list (space seperated)\n"
+            "Note: remember to quote from shell. -c \"cat1 cat2\""
+    )->default_val("default");
+
+    list->callback([]() 
+    {
+        std::vector<std::string> cat = cder::argparser::vector_str(
+            listopt.categories);
+        if (cat.empty()) {
+            std::cerr <<
+                "ERR Error: No categories specified" <<std::endl;
+            Error = 1;
+            return;
+        }
+
+        std::cout << "HELP List of categories:" << std::endl;
+        for (auto &c : cat) {
+            std::cout << c << ":\n";
+            std::vector<Bookmark> v = getInCat(c);
+            for (auto &m : v) {
+                std::cout << "    " << m.alias << ": " << m.path << '\n';
+            }
+        }
+    });
 }
 
 namespace cder::mark {
@@ -127,5 +155,23 @@ int pushMark(Bookmark &m, std::vector<std::string> categories) {
         }
     }
     return 0;
+}
+std::vector<Bookmark> getInCat(std::string &cat) {
+    const rj::Document &db = cder::db::marks;
+    std::vector<Bookmark> v;
+    const rj::Value &obj = db[cat.c_str()];
+    if (! obj.IsObject()) {
+        return v;
+    }
+    for (auto &member : obj.GetObject()) {
+        if (! member.value.IsString()) {
+            continue;
+        }
+        Bookmark m;
+        m.alias = member.name.GetString();
+        m.path = member.value.GetString();
+        v.push_back(m);
+    }
+    return v;
 }
 }

@@ -1,3 +1,4 @@
+#include <vector>
 #ifndef CDER_MARK_HPP
 
 #include "PCH/cli11_pch.hpp"
@@ -15,6 +16,9 @@ namespace cder {
                 std::string alias;
                 std::string categories;
             };
+            struct ListOpt {
+                std::string categories;
+            };
 
             void setup_options(CLI::App &app);
         }
@@ -25,6 +29,9 @@ namespace cder {
         };
         Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat);
         int pushMark(Bookmark &, std::vector<std::string> categories);
+
+        /* Get all marks in a category */
+        std::vector<Bookmark> getInCat(std::string &cat);
     }
 }
 
