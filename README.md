@@ -46,7 +46,7 @@ Below is the procedure on Linux-like environments:
 cd ~
 git clone https://github.com/ngtv2409/cder
 cd cder
-git submodule init
+git submodule update --init --recursive
 mkdir build
 cmake -B build
 make -C build # or other build systems
@@ -56,7 +56,8 @@ You may install it to `PATH`.
 Finally you will need to set its database path. Add this go your 
 `.bashrc` (or do the same on your specific shell).
 ```sh 
-export CDER_DB_PATH="~/.local/share/cder" # or wherever you want
+export CDER_DB_PATH=$(realpath ~/.local/share/cder) # or wherever you want
+# Note: the variable is sent directly to filesystem, so it must be full absolute path
 ```
 Now `cder` is available. The last step is to use it in your cd, an example 
 on how to do that can be found in `cder_def.sh`.
