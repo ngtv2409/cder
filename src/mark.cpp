@@ -13,34 +13,32 @@ namespace rj = rapidjson;
 void cli::setup_options(CLI::App &app) {
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
     mark->require_subcommand(1);
-    {
-        static AddOpt addopt{std::string("\0"), std::string("\0")};
-        CLI::App *add = mark->add_subcommand("add", "add a bookmark");
-        add->add_option("alias", addopt.alias, "the name of the mark")->required();
-        add->add_option("path", addopt.path, "the path to mark")->required();
-        add->add_option("-c, --categories", addopt.categories,
-                "the categories to add (space seperated)\n"
-                "Note: remember to quote from shell. -c \"cat1 cat2\""
-        )->default_val("default");
-        add->callback([]() {
-            std::vector<std::string> cat = cder::argparser::vector_str(
-                addopt.categories);
-            if (cat.empty()) {
-                std::cerr <<
-                    "ERR Error: No categories specified" <<std::endl;
-                Error = 1;
-                return;
-            }
+    static AddOpt addopt;
+    CLI::App *add = mark->add_subcommand("add", "add a bookmark");
+    add->add_option("alias", addopt.alias, "the name of the mark")->required();
+    add->add_option("path", addopt.path, "the path to mark")->required();
+    add->add_option("-c, --categories", addopt.categories,
+            "the categories to add (space seperated)\n"
+            "Note: remember to quote from shell. -c \"cat1 cat2\""
+    )->default_val("default");
+    add->callback([]() {
+        std::vector<std::string> cat = cder::argparser::vector_str(
+            addopt.categories);
+        if (cat.empty()) {
+            std::cerr <<
+                "ERR Error: No categories specified" <<std::endl;
+            Error = 1;
+            return;
+        }
 
-            Bookmark m{addopt.alias, addopt.path};
-            Error = pushMark(m, cat);
-            if (Error != 0) {
-                std::cout << "SUC" << std::endl;
-            }
-        });
-    }
+        Bookmark m{addopt.alias, addopt.path};
+        Error = pushMark(m, cat);
+        if (Error != 0) {
+            std::cout << "SUC" << std::endl;
+        }
+    });
 
-    static GetOpt getopt{std::string("\0")};
+    static GetOpt getopt;
     CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark");
     get->add_option("alias", getopt.alias, "the name of the mark")->required();
     get->callback([]() {
@@ -58,17 +56,17 @@ namespace cder::mark {
 Bookmark getMark(std::string &alias) {
     const rj::Document &db = cder::db::marks;
     if (! db.HasMember("bookmarks")) {
-        return {std::string{"\0"},std::string{"\0"}};
+        return {};
     }
     const rj::Value &obj = db["bookmarks"];
     if (! obj.IsObject()) {
-        return {std::string{"\0"},std::string{"\0"}};
+        return {};
     }
     if (! obj.HasMember(alias.c_str())) {
-        return {std::string{"\0"},std::string{"\0"}};
+        return {};
     }
     if (! obj[alias.c_str()].IsString()) {
-        return {std::string{"\0"},std::string{"\0"}};
+        return {};
     }
     Bookmark m{alias, obj[alias.c_str()].GetString()};
     return m;
@@ -77,11 +75,11 @@ Bookmark getMark(std::string &alias) {
 std::vector<Bookmark> getMarks() {
     const rj::Document &db = cder::db::marks;
     if (! db.HasMember("bookmarks")) {
-        return std::vector<Bookmark>({});
+        return std::vector<Bookmark>({};
     }
     const rj::Value &obj = db["bookmarks"];
     if (! obj.IsObject()) {
-        return std::vector<Bookmark>({});
+        return {};
     }
     std::vector<Bookmark> vec(obj.Size());
     for (auto& m : obj.GetObject()) {
