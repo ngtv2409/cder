@@ -8,6 +8,7 @@ namespace cder {
         namespace cli {
             struct CommonOpt {
                 std::string categories;
+                int all_cats;
             };
 
             struct AddOpt {

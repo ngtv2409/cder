@@ -19,6 +19,7 @@ void cli::setup_options(CLI::App &app) {
             "the categories to operate on (space seperated)\n"
             "Note: remember to quote from shell. -c \"cat1 cat2\""
     )->default_val("default");
+    mark->add_flag("-a, --all-categories", commonopt.all_cats, "include all categories");
 
     // {{{ Add
     static AddOpt addopt;
@@ -26,17 +27,22 @@ void cli::setup_options(CLI::App &app) {
     add->add_option("alias", addopt.alias, "the name of the mark")->required();
     add->add_option("path", addopt.path, "the path to mark")->required();
     add->callback([]() {
-        std::vector<std::string> cat = cder::argparser::vector_str(
-            commonopt.categories);
-        if (cat.empty()) {
-            std::cerr <<
-                "ERR Error: No categories specified" <<std::endl;
-            Error = 1;
-            return;
+        std::vector<std::string> cats;
+        if (! commonopt.all_cats) {
+            cats = cder::argparser::vector_str(
+                commonopt.categories);
+            if (cats.empty()) {
+                std::cerr <<
+                    "ERR Error: No categories specified" <<std::endl;
+                Error = 1;
+                return;
+            }
+        } else {
+            cats = getCats();
         }
 
         Bookmark m{addopt.alias, addopt.path};
-        Error = pushMark(m, cat);
+        Error = pushMark(m, cats);
         if (Error != 0) {
             std::cout << "SUC" << std::endl;
         }
@@ -48,17 +54,22 @@ void cli::setup_options(CLI::App &app) {
     CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark")->fallthrough();
     get->add_option("alias", getopt.alias, "the name of the mark")->required();
     get->callback([]() {
-        std::vector<std::string> cat = cder::argparser::vector_str(
-            commonopt.categories);
-        if (cat.empty()) {
-            std::cerr <<
-                "ERR Error: No categories specified" <<std::endl;
-            Error = 1;
-            return;
+        std::vector<std::string> cats;
+        if (! commonopt.all_cats) {
+            cats = cder::argparser::vector_str(
+                commonopt.categories);
+            if (cats.empty()) {
+                std::cerr <<
+                    "ERR Error: No categories specified" <<std::endl;
+                Error = 1;
+                return;
+            }
+        } else {
+            cats = getCats();
         }
 
         std::string incat;
-        Bookmark m = getMark(getopt.alias, cat, incat);
+        Bookmark m = getMark(getopt.alias, cats, incat);
         if (m.alias.empty()) {
             std::cerr << "ERR Error: No such bookmark in database" << std::endl;
             Error = 1;
@@ -76,17 +87,22 @@ void cli::setup_options(CLI::App &app) {
 
     list->callback([]() 
     {
-        std::vector<std::string> cat = cder::argparser::vector_str(
-            commonopt.categories);
-        if (cat.empty()) {
-            std::cerr <<
-                "ERR Error: No categories specified" <<std::endl;
-            Error = 1;
-            return;
+        std::vector<std::string> cats;
+        if (! commonopt.all_cats) {
+            cats = cder::argparser::vector_str(
+                commonopt.categories);
+            if (cats.empty()) {
+                std::cerr <<
+                    "ERR Error: No categories specified" <<std::endl;
+                Error = 1;
+                return;
+            }
+        } else {
+            cats = getCats();
         }
 
         std::cout << "HELP List of categories:" << std::endl;
-        for (auto &c : cat) {
+        for (auto &c : cats) {
             std::cout << c << ":\n";
             std::vector<Bookmark> v = getInCat(c);
             for (auto &m : v) {
