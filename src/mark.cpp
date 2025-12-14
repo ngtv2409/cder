@@ -12,19 +12,22 @@ namespace rj = rapidjson;
 #include "PCH/std_pch.hpp"
 
 void cli::setup_options(CLI::App &app) {
+    static CommonOpt commonopt;
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
     mark->require_subcommand(1);
-    static AddOpt addopt;
-    CLI::App *add = mark->add_subcommand("add", "add a bookmark");
-    add->add_option("alias", addopt.alias, "the name of the mark")->required();
-    add->add_option("path", addopt.path, "the path to mark")->required();
-    add->add_option("-c, --categories", addopt.categories,
-            "the categories to add (space seperated)\n"
+    mark->add_option("-c, --categories", commonopt.categories,
+            "the categories to operate on (space seperated)\n"
             "Note: remember to quote from shell. -c \"cat1 cat2\""
     )->default_val("default");
+
+    // {{{ Add
+    static AddOpt addopt;
+    CLI::App *add = mark->add_subcommand("add", "add a bookmark")->fallthrough();
+    add->add_option("alias", addopt.alias, "the name of the mark")->required();
+    add->add_option("path", addopt.path, "the path to mark")->required();
     add->callback([]() {
         std::vector<std::string> cat = cder::argparser::vector_str(
-            addopt.categories);
+            commonopt.categories);
         if (cat.empty()) {
             std::cerr <<
                 "ERR Error: No categories specified" <<std::endl;
@@ -38,17 +41,15 @@ void cli::setup_options(CLI::App &app) {
             std::cout << "SUC" << std::endl;
         }
     });
+    /// }}}
 
+    // {{{ Get
     static GetOpt getopt;
-    CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark");
+    CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark")->fallthrough();
     get->add_option("alias", getopt.alias, "the name of the mark")->required();
-    get->add_option("-c, --categories", getopt.categories,
-            "the categories to search (space seperated)\n"
-            "Note: remember to quote from shell. -c \"cat1 cat2\""
-    )->default_val("default");
     get->callback([]() {
         std::vector<std::string> cat = cder::argparser::vector_str(
-            getopt.categories);
+            commonopt.categories);
         if (cat.empty()) {
             std::cerr <<
                 "ERR Error: No categories specified" <<std::endl;
@@ -67,18 +68,16 @@ void cli::setup_options(CLI::App &app) {
                       << std::endl;
         }
     });
+    // }}}
 
+    /// {{{ List
     static ListOpt listopt;
-    CLI::App *list = mark->add_subcommand("list", "list all marks in categories");
-    list->add_option("-c, --categories", listopt.categories,
-            "the categories to list (space seperated)\n"
-            "Note: remember to quote from shell. -c \"cat1 cat2\""
-    )->default_val("default");
+    CLI::App *list = mark->add_subcommand("list", "list all marks in categories")->fallthrough();
 
     list->callback([]() 
     {
         std::vector<std::string> cat = cder::argparser::vector_str(
-            listopt.categories);
+            commonopt.categories);
         if (cat.empty()) {
             std::cerr <<
                 "ERR Error: No categories specified" <<std::endl;
@@ -95,6 +94,7 @@ void cli::setup_options(CLI::App &app) {
             }
         }
     });
+    // }}}
 }
 
 namespace cder::mark {
@@ -171,6 +171,15 @@ std::vector<Bookmark> getInCat(std::string &cat) {
         m.alias = member.name.GetString();
         m.path = member.value.GetString();
         v.push_back(m);
+    }
+    return v;
+}
+
+std::vector<std::string> getCats() {
+    const rj::Document &db = cder::db::marks;
+    std::vector<std::string> v;
+    for (auto &member : db.GetObject()) {
+        v.push_back(member.name.GetString());
     }
     return v;
 }

@@ -1,4 +1,3 @@
-#include <vector>
 #ifndef CDER_MARK_HPP
 
 #include "PCH/cli11_pch.hpp"
@@ -7,17 +6,18 @@
 namespace cder {
     namespace mark {
         namespace cli {
+            struct CommonOpt {
+                std::string categories;
+            };
+
             struct AddOpt {
                 std::string alias;
                 std::string path;
-                std::string categories;
             };
             struct GetOpt {
                 std::string alias;
-                std::string categories;
             };
             struct ListOpt {
-                std::string categories;
             };
 
             void setup_options(CLI::App &app);
@@ -32,6 +32,8 @@ namespace cder {
 
         /* Get all marks in a category */
         std::vector<Bookmark> getInCat(std::string &cat);
+
+        std::vector<std::string> getCats();
     }
 }
 
