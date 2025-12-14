@@ -1,6 +1,7 @@
 #include "main.hpp"
 #include "mark.hpp"
 #include "argparser.hpp"
+#include <string>
 using namespace cder::mark;
 
 #include "PCH/rapidjson_pch.hpp"
@@ -41,58 +42,57 @@ void cli::setup_options(CLI::App &app) {
     static GetOpt getopt;
     CLI::App *get = mark->add_subcommand("get", "get the path of a bookmark");
     get->add_option("alias", getopt.alias, "the name of the mark")->required();
+    get->add_option("-c, --categories", getopt.categories,
+            "the categories to search (space seperated)\n"
+            "Note: remember to quote from shell. -c \"cat1 cat2\""
+    )->default_val("default");
     get->callback([]() {
-        Bookmark m = getMark(getopt.alias);
+        std::vector<std::string> cat = cder::argparser::vector_str(
+            getopt.categories);
+        if (cat.empty()) {
+            std::cerr <<
+                "ERR Error: No categories specified" <<std::endl;
+            Error = 1;
+            return;
+        }
+
+        std::string incat;
+        Bookmark m = getMark(getopt.alias, cat, incat);
         if (m.alias.empty()) {
             std::cerr << "ERR Error: No such bookmark in database" << std::endl;
             Error = 1;
         } else {
-            std::cout << "SUC PATH \"" << m.path << "\"" << std::endl;
+            std::cout << "SUC PATH \"" << m.path << "\"" 
+                      << " CAT \"" << incat << "\"" 
+                      << std::endl;
         }
     });
 }
 
 namespace cder::mark {
-Bookmark getMark(std::string &alias) {
+Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat) {
     const rj::Document &db = cder::db::marks;
-    if (! db.HasMember("bookmarks")) {
-        return {};
-    }
-    const rj::Value &obj = db["bookmarks"];
-    if (! obj.IsObject()) {
-        return {};
-    }
-    if (! obj.HasMember(alias.c_str())) {
-        return {};
-    }
-    if (! obj[alias.c_str()].IsString()) {
-        return {};
-    }
-    Bookmark m{alias, obj[alias.c_str()].GetString()};
-    return m;
-}
-
-std::vector<Bookmark> getMarks() {
-    const rj::Document &db = cder::db::marks;
-    if (! db.HasMember("bookmarks")) {
-        return std::vector<Bookmark>({};
-    }
-    const rj::Value &obj = db["bookmarks"];
-    if (! obj.IsObject()) {
-        return {};
-    }
-    std::vector<Bookmark> vec(obj.Size());
-    for (auto& m : obj.GetObject()) {
-        if (! (
-                m.name.IsString() && m.value.IsString()
-        )) {
+    Bookmark m{"\0"};
+    for (auto &cat : categories) {
+        if (! db.HasMember(cat.c_str())) {
             continue;
         }
-        vec.push_back((Bookmark){
-            m.name.GetString(), m.value.GetString()
-        });
+        const rj::Value &obj = db[cat.c_str()];
+        if (! obj.IsObject()) {
+            continue;
+        }
+        if (! obj.HasMember(alias.c_str())) {
+            continue;
+        }
+        if (! obj[alias.c_str()].IsString()) {
+            continue;
+        }
+        m.alias = alias;
+        m.path = obj[alias.c_str()].GetString();
+        incat = cat;
+        break;
     }
-    return vec;
+    return m;
 }
 
 int pushMark(Bookmark &m, std::vector<std::string> categories) {

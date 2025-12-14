@@ -23,11 +23,7 @@ namespace cder {
             std::string alias;
             std::string path;
         };
-        Bookmark getMark(std::string &alias);
-        /*
-            Get all bookmarks from db as a vector
-         */
-        std::vector<Bookmark> getMarks();
+        Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat);
         int pushMark(Bookmark &, std::vector<std::string> categories);
     }
 }
