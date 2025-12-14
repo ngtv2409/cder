@@ -125,6 +125,31 @@ void cli::setup_options(CLI::App &app) {
         }
     });
     // }}}
+   
+    // {{{ Rm
+    static RmOpt rmopt;
+    CLI::App *rm = mark->add_subcommand("rm", "remove specified mark in categories")->fallthrough();
+    rm->add_option("alias", rmopt.alias, "the name of the mark")->required();
+
+    rm->callback([]() 
+    {
+        std::vector<std::string> cats;
+        if (! commonopt.all_cats) {
+            cats = cder::argparser::vector_str(
+                commonopt.categories);
+            if (cats.empty()) {
+                std::cerr <<
+                    "ERR Error: No categories specified" <<std::endl;
+                Error = 1;
+                return;
+            }
+        } else {
+            cats = getCats();
+        }
+        
+        removeMark(rmopt.alias, cats);
+    });
+    // }}}
 }
 
 namespace cder::mark {
@@ -212,5 +237,25 @@ std::vector<std::string> getCats() {
         v.push_back(member.name.GetString());
     }
     return v;
+}
+
+void removeMark(std::string &alias, std::vector<std::string> &categories) {
+    rj::Document &db = cder::db::marks;
+
+    for (const std::string &cat : categories) {
+        if (! db.HasMember(cat.c_str())) {
+            continue;
+        }
+        rj::Value &obj = db[cat.c_str()];
+        if (! obj.IsObject()) {
+            continue;
+        }
+
+        if (obj.HasMember(alias.c_str())) {
+            obj.GetObject().RemoveMember(alias.c_str());
+        } else {
+            std::cerr << "HELP Warning: " << alias << " does not exist in " << cat << '\n';
+        }
+    }
 }
 }

@@ -22,6 +22,9 @@ namespace cder {
                 // enable more readable output
                 int longfmt;
             };
+            struct RmOpt {
+                std::string alias;
+            };
 
             void setup_options(CLI::App &app);
         }
@@ -37,6 +40,7 @@ namespace cder {
         std::vector<Bookmark> getInCat(std::string &cat);
 
         std::vector<std::string> getCats();
+        void removeMark(std::string &alias, std::vector<std::string> &categories);
     }
 }
 
