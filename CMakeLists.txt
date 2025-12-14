@@ -28,6 +28,7 @@ add_executable(
     cder
     src/main.cpp
     src/mark.cpp
+    src/argparser.cpp
 )
 target_include_directories(cder PRIVATE include)
 target_precompile_headers(cder 
