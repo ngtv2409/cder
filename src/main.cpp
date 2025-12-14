@@ -1,5 +1,6 @@
 #include "Config.hpp"
 #include "main.hpp"
+#include "VERSION.hpp"
 #include "mark.hpp"
 
 #include "PCH/rapidjson_pch.hpp"
@@ -76,6 +77,8 @@ int main(int argc, const char **argv) {
     CLI::App app{"cder is a smart wrapper on cd", "cder"};
     app.require_subcommand(1);
     app.formatter(std::make_shared<HELPPrependFmt>());
+
+    app.set_version_flag("-v, --version", std::string("cder version ") + cder::Version);
 
     cder::mark::cli::setup_options(app);
 
