@@ -19,6 +19,8 @@ namespace cder {
                 std::string alias;
             };
             struct ListOpt {
+                // enable more readable output
+                int longfmt;
             };
 
             void setup_options(CLI::App &app);

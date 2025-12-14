@@ -11,6 +11,8 @@ namespace rj = rapidjson;
 
 #include "PCH/std_pch.hpp"
 
+#define quote(w) '\"' << w << '\"'
+
 void cli::setup_options(CLI::App &app) {
     static CommonOpt commonopt;
     CLI::App *mark = app.add_subcommand("mark", "directory bookmarks");
@@ -60,7 +62,7 @@ void cli::setup_options(CLI::App &app) {
                 commonopt.categories);
             if (cats.empty()) {
                 std::cerr <<
-                    "ERR Error: No categories specified" <<std::endl;
+                    "ERR Error: No categories specified" << std::endl;
                 Error = 1;
                 return;
             }
@@ -74,8 +76,8 @@ void cli::setup_options(CLI::App &app) {
             std::cerr << "ERR Error: No such bookmark in database" << std::endl;
             Error = 1;
         } else {
-            std::cout << "SUC PATH \"" << m.path << "\"" 
-                      << " CAT \"" << incat << "\"" 
+            std::cout << "SUC PATH " << quote(m.path)
+                      << " CAT " << quote(incat)
                       << std::endl;
         }
     });
@@ -84,6 +86,7 @@ void cli::setup_options(CLI::App &app) {
     /// {{{ List
     static ListOpt listopt;
     CLI::App *list = mark->add_subcommand("list", "list all marks in categories")->fallthrough();
+    list->add_flag("-l", listopt.longfmt, "use a long listing format");
 
     list->callback([]() 
     {
@@ -101,12 +104,23 @@ void cli::setup_options(CLI::App &app) {
             cats = getCats();
         }
 
-        std::cout << "HELP List of categories:" << std::endl;
-        for (auto &c : cats) {
-            std::cout << c << ":\n";
-            std::vector<Bookmark> v = getInCat(c);
-            for (auto &m : v) {
-                std::cout << "    " << m.alias << ": " << m.path << '\n';
+        if (listopt.longfmt) {
+            std::cout << "HELP List of categories:" << std::endl;
+            for (auto &c : cats) {
+                std::cout << c << ":\n";
+                std::vector<Bookmark> v = getInCat(c);
+                for (auto &m : v) {
+                    std::cout << "    " << m.alias << ": " << m.path << '\n';
+                }
+            }
+        } else {
+            for (auto &c : cats) {
+                std::vector<Bookmark> v = getInCat(c);
+                for (auto &m : v) {
+                    std::cout << "SUC NAME " << quote(m.alias)
+                              << " PATH " << quote(m.path)
+                              << " CAT " << quote(c) << '\n';
+                }
             }
         }
     });
