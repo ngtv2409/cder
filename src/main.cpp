@@ -79,6 +79,7 @@ int main(int argc, const char **argv) {
     app.formatter(std::make_shared<HELPPrependFmt>());
 
     app.set_version_flag("-v, --version", std::string("cder version ") + cder::Version);
+    app.set_help_all_flag("--help-all", "show all help of each subcommands and exit");
 
     cder::mark::cli::setup_options(app);
 
