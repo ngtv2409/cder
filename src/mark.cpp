@@ -1,8 +1,10 @@
 #include "main.hpp"
 #include "mark.hpp"
 #include "argparser.hpp"
-#include <vector>
+#include "db.hpp"
 using namespace cder::mark;
+
+using cder::db::dbcol;
 
 #include "PCH/rapidjson_pch.hpp"
 namespace rj = rapidjson;
@@ -154,7 +156,7 @@ void cli::setup_options(CLI::App &app) {
 
 namespace cder::mark {
 Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat) {
-    const rj::Document &db = cder::db::marks;
+    const rj::Document &db = dbcol.marks;
     Bookmark m{"\0"};
     for (auto &cat : categories) {
         if (! db.HasMember(cat.c_str())) {
@@ -179,7 +181,7 @@ Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::s
 }
 
 int pushMark(Bookmark &m, std::vector<std::string> categories) {
-    rj::Document &db = cder::db::marks;
+    rj::Document &db = dbcol.marks;
     auto &alloc = db.GetAllocator();
 
     auto path = std::filesystem::absolute(m.path);
@@ -212,7 +214,7 @@ int pushMark(Bookmark &m, std::vector<std::string> categories) {
     return 0;
 }
 std::vector<Bookmark> getInCat(std::string &cat) {
-    const rj::Document &db = cder::db::marks;
+    const rj::Document &db = dbcol.marks;
     std::vector<Bookmark> v;
     const rj::Value &obj = db[cat.c_str()];
     if (! obj.IsObject()) {
@@ -231,7 +233,7 @@ std::vector<Bookmark> getInCat(std::string &cat) {
 }
 
 std::vector<std::string> getCats() {
-    const rj::Document &db = cder::db::marks;
+    const rj::Document &db = dbcol.marks;
     std::vector<std::string> v;
     for (auto &member : db.GetObject()) {
         v.push_back(member.name.GetString());
@@ -240,7 +242,7 @@ std::vector<std::string> getCats() {
 }
 
 void removeMark(std::string &alias, std::vector<std::string> &categories) {
-    rj::Document &db = cder::db::marks;
+    rj::Document &db = dbcol.marks;
 
     for (const std::string &cat : categories) {
         if (! db.HasMember(cat.c_str())) {

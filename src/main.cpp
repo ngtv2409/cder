@@ -1,17 +1,12 @@
-#include "Config.hpp"
 #include "main.hpp"
 #include "VERSION.hpp"
+#include "db.hpp"
 #include "mark.hpp"
-
-#include "PCH/rapidjson_pch.hpp"
-namespace rj = rapidjson;
 
 #include "PCH/cli11_pch.hpp"
 
 #include "PCH/std_pch.hpp"
-namespace fs = std::filesystem;
 
-rj::Document cder::db::marks;
 int cder::Error = 0;
 
 class HELPPrependFmt : public CLI::Formatter {
@@ -22,56 +17,17 @@ class HELPPrependFmt : public CLI::Formatter {
 };
 
 int main(int argc, const char **argv) {
-/* rapidjson stream buffer */
-    char buffer[cder::Config::BufferSize];
-
-/*
-    I don't think abstract this with a function is a good idea
-    because it requires extra steps to scope the variables.
-    It does make the function longer but I'll let main do all the setup
-*/
-/*{{{ Setup database */
     char *dbdir_r = std::getenv("CDER_DB_PATH");
-    if (! dbdir_r) {
-        std::cerr << "ERR Error: CDER_DB_PATH must be set" << std::endl;
-        return 1;
+    // exists (not NULL) and not empty (first char not \0)
+    if (! ( dbdir_r && *dbdir_r )) {
+        std::cerr << "ERR Error: CDER_DB_PATH must be set\n";
     }
-    std::string dbdir(dbdir_r);    
-    if (dbdir.empty()) {
-        std::cerr << "ERR Error: CDER_DB_PATH must be set" << std::endl;
-        return 1;
-    }
-    if (! fs::exists(dbdir)) {
-        try {
-            fs::create_directory(dbdir);
-        } catch (const fs::filesystem_error& e) {
-            std::cerr << "ERR Error: " << e.what() << std::endl;
-            return 1;
-        }
-    }
+    std::string dbdir{dbdir_r};
 
-    /* Read DB */
-    fs::path db_marks_path = fs::path(dbdir) / "marks.json";
-    if (! fs::exists(db_marks_path)) {
-        cder::db::marks.SetObject();
-    } else {
-        std::FILE *fp = std::fopen(db_marks_path.c_str(), "rb");
-        if (! fp) {
-            std::perror("ERR Error");
-            return 1;
-        }
-        rj::FileReadStream is(fp, buffer, sizeof(buffer));
-        if (cder::db::marks.ParseStream(is).HasParseError()) {
-            std::cerr << "ERR Error: " << 
-            rj::GetParseError_En(cder::db::marks.GetParseError()) << std::endl;
-        }
-        // is not object, ignore and set empty
-        if (! cder::db::marks.IsObject()) {
-            cder::db::marks.SetObject();
-        }
-        std::fclose(fp);
+    int setupec = cder::db::setup_db(dbdir);
+    if (setupec) {
+        return setupec;
     }
-/* End Setup database }}}*/
 
 /* Setup CLI */
     CLI::App app{"cder is a smart wrapper on cd", "cder"};
@@ -92,17 +48,9 @@ int main(int argc, const char **argv) {
     }
 /* End Setup CLI */
 
-/* Finallize database */
-    {
-        std::FILE *fp = std::fopen(db_marks_path.c_str(), "wb");
-        if (! fp) {
-            std::perror("ERR Error");
-            return 1;
-        }
-        rj::FileWriteStream os(fp, buffer, sizeof(buffer));
-        rj::Writer<rj::FileWriteStream> writer(os);
-        cder::db::marks.Accept(writer);
-        std::fclose(fp);
+    int finalec = cder::db::finalize_db(dbdir);
+    if (finalec) {
+        return finalec;
     }
 
     return cder::Error;
