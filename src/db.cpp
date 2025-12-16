@@ -37,6 +37,7 @@ int cder::db::setup_db(const std::string &dbdir) {
         if (dbcol.marks.ParseStream(is).HasParseError()) {
             std::cerr << "ERR Error: " << 
             rj::GetParseError_En(dbcol.marks.GetParseError()) << std::endl;
+            return 1;
         }
         // is not object, ignore and set empty
         if (! dbcol.marks.IsObject()) {
