@@ -1,5 +1,8 @@
 #ifndef CDER_MARK_HPP
 
+#include "return.hpp"
+
+
 #include "PCH/cli11_pch.hpp"
 #include "PCH/std_pch.hpp"
 
@@ -33,14 +36,14 @@ namespace cder {
             std::string alias;
             std::string path;
         };
-        Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat);
-        int pushMark(Bookmark &, std::vector<std::string> categories);
+        Bookmark getMark(std::string &alias, std::string &category);
+        int pushMark(Bookmark &, std::string &category);
 
         /* Get all marks in a category */
         std::vector<Bookmark> getInCat(std::string &cat);
 
         std::vector<std::string> getCats();
-        void removeMark(std::string &alias, std::vector<std::string> &categories);
+        void removeMark(std::string &alias, std::string &category);
     }
 }
 

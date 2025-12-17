@@ -45,11 +45,19 @@ void cli::setup_options(CLI::App &app) {
             cats = getCats();
         }
 
-        Bookmark m{addopt.alias, addopt.path};
-        Error = pushMark(m, cats);
-        if (Error != 0) {
-            std::cout << "SUC" << std::endl;
+        auto path = std::filesystem::absolute(addopt.path);
+        if (! std::filesystem::exists(path)) {
+            std::cerr << "ERR Error: no such directory" << std::endl;
+            Error = 1;
+            return;
         }
+
+
+        Bookmark m{addopt.alias, path};
+        for (auto &cat : cats) {
+            pushMark(m, cat);
+        }
+        std::cout << "SUC" << std::endl;
     });
     /// }}}
 
@@ -73,14 +81,17 @@ void cli::setup_options(CLI::App &app) {
         }
 
         std::string incat;
-        Bookmark m = getMark(getopt.alias, cats, incat);
-        if (m.alias.empty()) {
-            std::cerr << "ERR Error: No such bookmark in database" << std::endl;
-            Error = 1;
-        } else {
-            std::cout << "SUC PATH " << quote(m.path)
-                      << " CAT " << quote(incat)
-                      << std::endl;
+        for (auto &cat : cats) {
+            Bookmark m = getMark(getopt.alias, cat);
+            if (m.alias.empty()) {
+                std::cerr << "ERR Error: No such bookmark in database" << std::endl;
+                Error = 1;
+                break;
+            } else {
+                std::cout << "SUC PATH " << quote(m.path)
+                          << " CAT " << quote(incat)
+                          << std::endl;
+            }
         }
     });
     // }}}
@@ -149,67 +160,57 @@ void cli::setup_options(CLI::App &app) {
             cats = getCats();
         }
         
-        removeMark(rmopt.alias, cats);
+        for (auto &cat : cats) {
+            removeMark(rmopt.alias, cat);
+        }
     });
     // }}}
 }
 
 namespace cder::mark {
-Bookmark getMark(std::string &alias, std::vector<std::string> categories, std::string &incat) {
+Bookmark getMark(std::string &alias, std::string &category) {
     const rj::Document &db = dbcol.marks;
     Bookmark m{"\0"};
-    for (auto &cat : categories) {
-        if (! db.HasMember(cat.c_str())) {
-            continue;
-        }
-        const rj::Value &obj = db[cat.c_str()];
-        if (! obj.IsObject()) {
-            continue;
-        }
-        if (! obj.HasMember(alias.c_str())) {
-            continue;
-        }
-        if (! obj[alias.c_str()].IsString()) {
-            continue;
-        }
-        m.alias = alias;
-        m.path = obj[alias.c_str()].GetString();
-        incat = cat;
-        break;
+    if (! db.HasMember(category.c_str())) {
+        return m;
     }
+    const rj::Value &obj = db[category.c_str()];
+    if (! obj.IsObject()) {
+        return m;
+    }
+    if (! obj.HasMember(alias.c_str())) {
+        return m;
+    }
+    if (! obj[alias.c_str()].IsString()) {
+        return m;
+    }
+    m.alias = alias;
+    m.path = obj[alias.c_str()].GetString();
     return m;
 }
 
-int pushMark(Bookmark &m, std::vector<std::string> categories) {
+int pushMark(Bookmark &m, std::string &category) {
     rj::Document &db = dbcol.marks;
     auto &alloc = db.GetAllocator();
 
-    auto path = std::filesystem::absolute(m.path);
-    if (! std::filesystem::exists(path)) {
-        std::cerr << "ERR Error: no such directory" << std::endl;
-        return 1;
+    if (! db.HasMember(category.c_str())) {
+        db.AddMember(rj::Value(category.c_str(), alloc),
+                     rj::Value(rj::kObjectType),
+                     alloc);
+    }
+    rj::Value &obj = db[category.c_str()];
+    if (! obj.IsObject()) {
+        obj.SetObject();
     }
 
-    for (const std::string &cat : categories) {
-        if (! db.HasMember(cat.c_str())) {
-            db.AddMember(rj::Value(cat.c_str(), alloc),
-                         rj::Value(rj::kObjectType),
-                         alloc);
-        }
-        rj::Value &obj = db[cat.c_str()];
-        if (! obj.IsObject()) {
-            obj.SetObject();
-        }
-
-        if (obj.HasMember(m.alias.c_str())) {
-            obj[m.alias.c_str()] = rj::Value(path.c_str(), alloc);
-        } else {
-            obj.AddMember(
-                rj::Value(m.alias.c_str(), alloc),
-                rj::Value(path.c_str(), alloc),
-                alloc
-            );
-        }
+    if (obj.HasMember(m.alias.c_str())) {
+        obj[m.alias.c_str()] = rj::Value(m.path.c_str(), alloc);
+    } else {
+        obj.AddMember(
+            rj::Value(m.alias.c_str(), alloc),
+            rj::Value(m.path.c_str(), alloc),
+            alloc
+        );
     }
     return 0;
 }
@@ -241,23 +242,21 @@ std::vector<std::string> getCats() {
     return v;
 }
 
-void removeMark(std::string &alias, std::vector<std::string> &categories) {
+void removeMark(std::string &alias, std::string &category) {
     rj::Document &db = dbcol.marks;
 
-    for (const std::string &cat : categories) {
-        if (! db.HasMember(cat.c_str())) {
-            continue;
-        }
-        rj::Value &obj = db[cat.c_str()];
-        if (! obj.IsObject()) {
-            continue;
-        }
+    if (! db.HasMember(category.c_str())) {
+        return;
+    }
+    rj::Value &obj = db[category.c_str()];
+    if (! obj.IsObject()) {
+        return;
+    }
 
-        if (obj.HasMember(alias.c_str())) {
-            obj.GetObject().RemoveMember(alias.c_str());
-        } else {
-            std::cerr << "HELP Warning: " << alias << " does not exist in " << cat << '\n';
-        }
+    if (obj.HasMember(alias.c_str())) {
+        obj.GetObject().RemoveMember(alias.c_str());
+    } else {
+        std::cerr << "HELP Warning: " << alias << " does not exist in " << category << '\n';
     }
 }
 }
