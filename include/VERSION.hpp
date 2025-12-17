@@ -1,4 +1,5 @@
 #ifndef VERSION_HPP
+#define VERSION_HPP
 
 namespace cder {
     static constexpr int VersionMajor = 1;

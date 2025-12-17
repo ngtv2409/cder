@@ -1,4 +1,5 @@
 #ifndef CDER_MAIN_HPP
+#define CDER_MAIN_HPP
 
 #include "PCH/rapidjson_pch.hpp"
 #include "PCH/std_pch.hpp"

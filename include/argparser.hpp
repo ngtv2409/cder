@@ -1,4 +1,5 @@
 #ifndef CDER_ARGPARSER_HPP
+#define CDER_ARGPARSER_HPP
 
 #include "PCH/std_pch.hpp"
 

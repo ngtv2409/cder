@@ -1,5 +1,7 @@
-#include <cstddef>
 #ifndef CDER_CONFIG_HPP
+#define CDER_CONFIG_HPP
+
+#include <cstddef>
 
 namespace cder {
     namespace Config {
