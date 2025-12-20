@@ -3,6 +3,7 @@
 
 #include "PCH/rapidjson_pch.hpp"
 #include "PCH/std_pch.hpp"
+#include "protocol.hpp"
 
 namespace cder {
     namespace db {
@@ -11,8 +12,8 @@ namespace cder {
         }; 
         extern _db dbcol;
 
-        int setup_db(const std::string &dbdir);
-        int finalize_db(const std::string &dbdir);
+        int setup_db(const std::string &dbdir, protocol::Error &e);
+        int finalize_db(const std::string &dbdir, protocol::Error &e);
     }
 }
 

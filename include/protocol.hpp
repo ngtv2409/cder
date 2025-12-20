@@ -3,6 +3,9 @@
 
 #include "PCH/std_pch.hpp"
 
+#define FIELD(name, val) ((cder::protocol::Field){name, val})
+#define ERRORF(name, act, msg) FIELD("CODE", name), FIELD("ACTION", act), FIELD("MESSAGE", msg)
+
 namespace cder::protocol {
     struct Error {
         int hasError;

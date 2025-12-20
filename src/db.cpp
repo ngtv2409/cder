@@ -3,6 +3,9 @@
 
 #include "PCH/std_pch.hpp"
 #include "PCH/rapidjson_pch.hpp"
+#include "protocol.hpp"
+#include "rapidjson/error/en.h"
+#include <cerrno>
 
 namespace fs = std::filesystem;
 namespace rj = rapidjson;
@@ -13,12 +16,12 @@ char buffer[cder::Config::BufferSize];
 
 using namespace cder::db;
 
-int cder::db::setup_db(const std::string &dbdir) {
+int cder::db::setup_db(const std::string &dbdir, protocol::Error &e) {
     if (! fs::exists(dbdir)) {
         try {
             fs::create_directory(dbdir);
-        } catch (const fs::filesystem_error& e) {
-            std::cerr << "ERR Error: " << e.what() << std::endl;
+        } catch (const fs::filesystem_error& fse) {
+            e.setError("fs", "creating database directory", fse.what());
             return 1;
         }
     }
@@ -30,13 +33,13 @@ int cder::db::setup_db(const std::string &dbdir) {
     } else {
         std::FILE *fp = std::fopen(db_marks_path.c_str(), "rb");
         if (! fp) {
-            std::perror("ERR Error");
+            e.setError("fs", "opening marks.json", std::strerror(errno));
             return 1;
         }
         rj::FileReadStream is(fp, buffer, sizeof(buffer));
         if (dbcol.marks.ParseStream(is).HasParseError()) {
-            std::cerr << "ERR Error: " << 
-            rj::GetParseError_En(dbcol.marks.GetParseError()) << std::endl;
+            e.setError("json", "parsing marks.json", 
+                        rj::GetParseError_En(dbcol.marks.GetParseError()));
             return 1;
         }
         // is not object, ignore and set empty
@@ -48,13 +51,13 @@ int cder::db::setup_db(const std::string &dbdir) {
     return 0;
 }
 
-int cder::db::finalize_db(const std::string &dbdir) {
+int cder::db::finalize_db(const std::string &dbdir, protocol::Error &e) {
 /* Finallize database */
     {
         fs::path db_marks_path = fs::path(dbdir) / "marks.json";
         std::FILE *fp = std::fopen(db_marks_path.c_str(), "wb");
         if (! fp) {
-            std::perror("ERR Error");
+            e.setError("fs", "opening marks.json", std::strerror(errno));
             return 1;
         }
         rj::FileWriteStream os(fp, buffer, sizeof(buffer));
