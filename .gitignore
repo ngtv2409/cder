@@ -1,3 +1,5 @@
 build
 # temp dbdir for testing
 cder_db
+
+*.out
