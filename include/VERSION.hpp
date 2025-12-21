@@ -1,5 +1,5 @@
-#ifndef VERSION_HPP
-#define VERSION_HPP
+#ifndef CDER_VERSION_HPP
+#define CDER_VERSION_HPP
 
 namespace cder {
     static constexpr int VersionMajor = 1;
@@ -9,4 +9,4 @@ namespace cder {
     static constexpr char Version[] = "1.0.0";
 }
 
-#endif // !VERSION_HPP
+#endif // !CDER_VERSION_HPP

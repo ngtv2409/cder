@@ -1,5 +1,5 @@
-#ifndef CDER_MAIN_HPP
-#define CDER_MAIN_HPP
+#ifndef CDER_DB_HPP
+#define CDER_DB_HPP
 
 #include "PCH/rapidjson_pch.hpp"
 #include "PCH/std_pch.hpp"
@@ -17,4 +17,4 @@ namespace cder {
     }
 }
 
-#endif // !CDER_MAIN_HPP
+#endif // !CDER_DB_HPP
