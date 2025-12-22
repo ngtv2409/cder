@@ -8,10 +8,10 @@
 
 namespace cder::protocol {
     struct Error {
-        int hasError;
-        std::string name;
-        std::string action; // The action tried to perform which caused it (high level)
-        std::string message;
+        int hasError = 0;
+        std::string name = "";
+        std::string action = ""; // The action tried to perform which caused it (high level)
+        std::string message = "";
 
         void setError(const std::string &name, const std::string &action, const std::string &message) {
             this->hasError = 1;
