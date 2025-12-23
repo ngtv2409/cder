@@ -2,73 +2,63 @@
 
 Specifies how the shell can interact with cder via a simple IPC protocol.
 
+# Definitions
+
+- US: The ascii unit seperator
+- RS: The ascii record seperator
+- Field: Key-Value pair
+
 # Message structure
 
-A message consists of a **TYPE** and its corresponding following 
-syntax, read below.
-
-There is imporant note is that everything, *TYPE*, *KEY*, *VAL* 
-are seperated by NUL(\0). In other words, the protocol is just a 
-collection of words seperated by NUL.
+The message is sent as a record containing a token stream, 
+where each tokens end with a US and each records end with a RS.
+Every 2 tokens is a field.
 
 ```
-OUT\0KEY1\0VAL1\0KEY2\0VAL2
+# Note: the _ are logical seperator and do not present in the actual message
+KEY1_US_VAL1_US_KEY2_US_VAL2_US_RS
 ```
 
-Nothing, beside the message field of `MSG` shall contains newline.
-Newline character is used to seperate multiple output, for example,
-cder may return multiple messages. Newline is `\n` only.
-```
-OUT\0KEY\0VAL # this is message 1
-OUT\0KEY\0VAL # this is message 2
-```
-The parse step is read each line and do the steps specfied below.
-
-## TYPE(OUT|MSG)
-
-```
-OUT <values>
-MSG <message>
+This record is parsed conceptually as this json:
+```json
+{
+    "KEY1": "VAL1",
+    "KEY2": "VAL2"
+}
 ```
 
-The first word of the output is either OUT or MSG, this field determines 
-the type of the message. `OUT` stands before a normal protocol output, 
-where it directly followed by values that the shell wrapper can read.
-Whereas `MSG` is a special type used to allow human output even when
-`-l` has not been specified. This is useful for help messages in aliases.
-It allow users to use `--help` in contexts where protocol output is expected.
+Multiple records may be send at once, the RS is what used to seperate them.
 
-Multiple `OUT`s can be returned seperated by newline. `MSG` always comes alone.
+Records always contain a field keyed `CODE`, it is analogous to return code but textual.
+See [Codes](#codes) for the values of `CODE`.
 
-Upcoming TYPEs may include: `IBEGIN`, `IEND` for interactive mode, which allow
-prompts to not prevent the shell from reading protocol output.
+For info on fields contained in the respond of each commands, see [API](API.md).
 
-### How to handle
-
-- `OUT`: When received, the shell should parse the following words 
-   with the rules defined in **Values**.
-
-- `MSG`: When received, the shell should output the following message as is
-
-## Values
-
-An `OUT` type return values in the following manner:
+The following syntax is used to easier express output in documentations:
 ```
-[KEY "VALUE"]*
-```
-That is, a `KEY` followed by a quoted `VALUE`. For instance, a call to 
-`mark get` may get something like:
-```
-OUT\0CODE\0success\0PATH\0path/to/dir\0CAT\0category_found_from\0
-```
-Where `OUT` let you know that it is followed by values, CODE, PATH, CAT are keys
-and "path/to/dir", "category_found_from" are values.
-
-Errors are also returned as an `OUT` type.
-```
-OUT\0CODE\0"not_found"\0MESSAGE\0"No\0matching\0mark\0${query}\0found\0in\0${category}"
+KEY1="VAL1" KEY2="VAL2" ...
 ```
 
 ## Codes
 
-Todo: standardize codes
+This section contains the codes used in cder.
+Codes do not always related to errors.
+
+### NoError (nul)
+The default code, signates successful result.
+
+### Help (help)
+Signal used to distinguish 2 kind of 0 return codes,
+thus allows shells to not mistakenly process `--help` output.
+
+### ConfigError (config)
+Error caused by missing configuration. E.g: Missing `CDER_DB_PATH`.
+
+### FSError (fs)
+Error caused by file operations.
+
+### JSONError (json)
+Error caused by json.
+
+### CLIError (cli)
+Error caused by CLI.
