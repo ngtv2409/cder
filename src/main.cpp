@@ -1,3 +1,4 @@
+#include "CLI/CLI.hpp"
 #include "VERSION.hpp"
 #include "db.hpp"
 #include "mark.hpp"
@@ -46,6 +47,13 @@ int main(int argc, const char **argv) {
     app.set_version_flag("-v, --version", std::string("cder version ") + cder::Version);
     app.set_help_all_flag("--help-all", "show all help of each subcommands and exit");
 
+    app.add_flag_function(
+        "--db-path", [&](int) {
+            throw CLI::CallForVersion(dbdir, 0);
+        },
+        "get db path and exit"
+    )->trigger_on_parse();
+    
     cder::mark::cli::setup_options(app);
 
     std::ostringstream oss;
