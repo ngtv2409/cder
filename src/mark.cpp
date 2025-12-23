@@ -94,18 +94,13 @@ void cli::setup_options(CLI::App &app) {
             if (e.hasError) {
                 protocol::send_message({
                     ERRORF(e.name, e.action, e.message),
-                    {"CAT", cat},
-                    {"ALIAS", getopt.alias}
                 });
                 continue;
             }
             if (m.alias.empty()) {
-                std::cerr << "ERR Error: No such bookmark in database" << std::endl;
                 protocol::send_message({
                     ERRORF("notfound", "getting mark::"+cat+"::"+getopt.alias,
                             "mark::"+cat+"::"+getopt.alias+" not found"),
-                    {"CAT", cat},
-                    {"ALIAS", getopt.alias}
                 });
 
                 ErrorCode = 1;
@@ -150,7 +145,6 @@ void cli::setup_options(CLI::App &app) {
             if (e.hasError) {
                 protocol::send_message({
                     ERRORF(e.name, e.action, e.message),
-                    {"CAT", c}
                 });
             }
 
@@ -194,8 +188,6 @@ void cli::setup_options(CLI::App &app) {
             if (e.hasError) {
                 protocol::send_message({
                     ERRORF(e.name, e.action, e.message),
-                    {"CAT", cat},
-                    {"ALIAS", rmopt.alias}
                 });
                 e.hasError = 0;
             } else {
@@ -270,6 +262,12 @@ int pushMark(Bookmark &m, std::string &category) {
 std::vector<Bookmark> getInCat(std::string &cat, protocol::Error &e) {
     const rj::Document &db = dbcol.marks;
     std::vector<Bookmark> v;
+    if (! db.HasMember(cat.c_str())) {
+        e.setError(
+                "json", "getting member mark::" + cat, 
+                "member mark::" + cat + " does not exists");
+        return v;
+    }
     const rj::Value &obj = db[cat.c_str()];
     if (! obj.IsObject()) {
         e.setError("json", "validating", "member mark::" + cat + " is invalid. Expect object");
