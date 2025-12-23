@@ -2,6 +2,7 @@
 #include "mark.hpp"
 #include "argparser.hpp"
 #include "db.hpp"
+#include "protocol.hpp"
 using namespace cder::mark;
 
 using cder::db::dbcol;
@@ -36,9 +37,10 @@ void cli::setup_options(CLI::App &app) {
             cats = cder::argparser::vector_str(
                 commonopt.categories);
             if (cats.empty()) {
-                std::cerr <<
-                    "ERR Error: No categories specified" <<std::endl;
-                Error = 1;
+                protocol::send_message({
+                    ERRORF("cli", "getting categories", "no category specified")    
+                });
+                ErrorCode = 1;
                 return;
             }
         } else {
@@ -47,17 +49,21 @@ void cli::setup_options(CLI::App &app) {
 
         auto path = std::filesystem::absolute(addopt.path);
         if (! std::filesystem::exists(path)) {
-            std::cerr << "ERR Error: no such directory" << std::endl;
-            Error = 1;
+            protocol::send_message({ERRORF("fs", "validating", path.string() + " does not exist")});
+            ErrorCode = 1;
             return;
         }
-
 
         Bookmark m{addopt.alias, path};
         for (auto &cat : cats) {
             pushMark(m, cat);
+            protocol::send_message({
+                {"CODE", "nul"},
+                {"CAT", cat},
+                {"ALIAS", addopt.alias},
+                {"PATH", path},
+            });
         }
-        std::cout << "SUC" << std::endl;
     });
     /// }}}
 
@@ -71,26 +77,46 @@ void cli::setup_options(CLI::App &app) {
             cats = cder::argparser::vector_str(
                 commonopt.categories);
             if (cats.empty()) {
-                std::cerr <<
-                    "ERR Error: No categories specified" << std::endl;
-                Error = 1;
+                protocol::send_message({
+                    ERRORF("cli", "getting categories", "no category specified")    
+                });
+                ErrorCode = 1;
                 return;
             }
         } else {
             cats = getCats();
         }
 
-        std::string incat;
+        protocol::Error e;
         for (auto &cat : cats) {
-            Bookmark m = getMark(getopt.alias, cat);
+            e.hasError = 0;
+            Bookmark m = getMark(getopt.alias, cat, e);
+            if (e.hasError) {
+                protocol::send_message({
+                    ERRORF(e.name, e.action, e.message),
+                    {"CAT", cat},
+                    {"ALIAS", getopt.alias}
+                });
+                continue;
+            }
             if (m.alias.empty()) {
                 std::cerr << "ERR Error: No such bookmark in database" << std::endl;
-                Error = 1;
-                break;
+                protocol::send_message({
+                    ERRORF("notfound", "getting mark::"+cat+"::"+getopt.alias,
+                            "mark::"+cat+"::"+getopt.alias+" not found"),
+                    {"CAT", cat},
+                    {"ALIAS", getopt.alias}
+                });
+
+                ErrorCode = 1;
+                continue;
             } else {
-                std::cout << "SUC PATH " << quote(m.path)
-                          << " CAT " << quote(incat)
-                          << std::endl;
+                protocol::send_message({
+                        {"CODE", "nul"},
+                        {"CAT", cat},
+                        {"ALIAS", getopt.alias},
+                        {"PATH", m.path}
+                });
             }
         }
     });
@@ -99,7 +125,6 @@ void cli::setup_options(CLI::App &app) {
     /// {{{ List
     static ListOpt listopt;
     CLI::App *list = mark->add_subcommand("list", "list all marks in categories")->fallthrough();
-    list->add_flag("-l", listopt.longfmt, "use a long listing format");
 
     list->callback([]() 
     {
@@ -108,32 +133,34 @@ void cli::setup_options(CLI::App &app) {
             cats = cder::argparser::vector_str(
                 commonopt.categories);
             if (cats.empty()) {
-                std::cerr <<
-                    "ERR Error: No categories specified" <<std::endl;
-                Error = 1;
+                protocol::send_message({
+                    ERRORF("cli", "getting categories", "no category specified")    
+                });
+                ErrorCode = 1;
                 return;
             }
         } else {
             cats = getCats();
         }
 
-        if (listopt.longfmt) {
-            std::cout << "HELP List of categories:" << std::endl;
-            for (auto &c : cats) {
-                std::cout << c << ":\n";
-                std::vector<Bookmark> v = getInCat(c);
-                for (auto &m : v) {
-                    std::cout << "    " << m.alias << ": " << m.path << '\n';
-                }
+        protocol::Error e;
+
+        for (auto &c : cats) {
+            std::vector<Bookmark> v = getInCat(c, e);
+            if (e.hasError) {
+                protocol::send_message({
+                    ERRORF(e.name, e.action, e.message),
+                    {"CAT", c}
+                });
             }
-        } else {
-            for (auto &c : cats) {
-                std::vector<Bookmark> v = getInCat(c);
-                for (auto &m : v) {
-                    std::cout << "SUC NAME " << quote(m.alias)
-                              << " PATH " << quote(m.path)
-                              << " CAT " << quote(c) << '\n';
-                }
+
+            for (auto &m : v) {
+                protocol::send_message({
+                    {"CODE", "nul"},
+                    {"CAT", c},
+                    {"ALIAS", m.alias},
+                    {"PATH", m.path}
+                });
             }
         }
     });
@@ -151,37 +178,63 @@ void cli::setup_options(CLI::App &app) {
             cats = cder::argparser::vector_str(
                 commonopt.categories);
             if (cats.empty()) {
-                std::cerr <<
-                    "ERR Error: No categories specified" <<std::endl;
-                Error = 1;
+                protocol::send_message({
+                    ERRORF("cli", "getting categories", "no category specified")    
+                });
+                ErrorCode = 1;
                 return;
             }
         } else {
             cats = getCats();
         }
         
+        protocol::Error e;
         for (auto &cat : cats) {
-            removeMark(rmopt.alias, cat);
+            removeMark(rmopt.alias, cat, e);
+            if (e.hasError) {
+                protocol::send_message({
+                    ERRORF(e.name, e.action, e.message),
+                    {"CAT", cat},
+                    {"ALIAS", rmopt.alias}
+                });
+                e.hasError = 0;
+            } else {
+                protocol::send_message({
+                    {"CODE", "nul"},
+                    {"CAT", cat},
+                    {"ALIAS", rmopt.alias}
+                });
+            }
         }
     });
     // }}}
 }
 
 namespace cder::mark {
-Bookmark getMark(std::string &alias, std::string &category) {
+Bookmark getMark(std::string &alias, std::string &category, protocol::Error &e) {
     const rj::Document &db = dbcol.marks;
     Bookmark m{"\0"};
     if (! db.HasMember(category.c_str())) {
+        e.setError(
+                "json", "getting member mark::" + category, 
+                "member mark::" + category + " does not exists");
         return m;
     }
     const rj::Value &obj = db[category.c_str()];
     if (! obj.IsObject()) {
+        e.setError(
+                "json", "validating", 
+                "member mark::" + category + " is invalid. Expect object");
         return m;
     }
     if (! obj.HasMember(alias.c_str())) {
+        // not exists is not error
         return m;
     }
     if (! obj[alias.c_str()].IsString()) {
+        e.setError(
+                "json", "validating",
+                "member mark::" + category + "::" + alias + " is invalid. Expect string");
         return m;
     }
     m.alias = alias;
@@ -214,11 +267,12 @@ int pushMark(Bookmark &m, std::string &category) {
     }
     return 0;
 }
-std::vector<Bookmark> getInCat(std::string &cat) {
+std::vector<Bookmark> getInCat(std::string &cat, protocol::Error &e) {
     const rj::Document &db = dbcol.marks;
     std::vector<Bookmark> v;
     const rj::Value &obj = db[cat.c_str()];
     if (! obj.IsObject()) {
+        e.setError("json", "validating", "member mark::" + cat + " is invalid. Expect object");
         return v;
     }
     for (auto &member : obj.GetObject()) {
@@ -242,21 +296,21 @@ std::vector<std::string> getCats() {
     return v;
 }
 
-void removeMark(std::string &alias, std::string &category) {
+void removeMark(std::string &alias, std::string &category, protocol::Error &e) {
     rj::Document &db = dbcol.marks;
 
     if (! db.HasMember(category.c_str())) {
+        e.setError("json", "validating", "member mark::"+category+" does not exist");
         return;
     }
     rj::Value &obj = db[category.c_str()];
     if (! obj.IsObject()) {
+        e.setError("json", "validating", "member mark::"+category+" is invalid. Expect object");
         return;
     }
 
     if (obj.HasMember(alias.c_str())) {
         obj.GetObject().RemoveMember(alias.c_str());
-    } else {
-        std::cerr << "HELP Warning: " << alias << " does not exist in " << category << '\n';
     }
 }
 }

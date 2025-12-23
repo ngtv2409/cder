@@ -22,8 +22,6 @@ namespace cder {
                 std::string alias;
             };
             struct ListOpt {
-                // enable more readable output
-                int longfmt;
             };
             struct RmOpt {
                 std::string alias;
@@ -37,13 +35,13 @@ namespace cder {
             std::string path;
         };
         Bookmark getMark(std::string &alias, std::string &category, protocol::Error &e);
-        int pushMark(Bookmark &, std::string &category, protocol::Error &e);
+        int pushMark(Bookmark &, std::string &category);
 
         /* Get all marks in a category */
-        std::vector<Bookmark> getInCat(std::string &cat);
+        std::vector<Bookmark> getInCat(std::string &cat, protocol::Error &e);
 
         std::vector<std::string> getCats();
-        void removeMark(std::string &alias, std::string &category);
+        void removeMark(std::string &alias, std::string &category, protocol::Error &e);
     }
 }
 

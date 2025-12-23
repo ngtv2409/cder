@@ -1,57 +1,86 @@
-#include "main.hpp"
 #include "VERSION.hpp"
 #include "db.hpp"
 #include "mark.hpp"
+#include "protocol.hpp"
+#include "main.hpp"
 
 #include "PCH/cli11_pch.hpp"
 
 #include "PCH/std_pch.hpp"
+#include <sstream>
 
-int cder::Error = 0;
-
-class HELPPrependFmt : public CLI::Formatter {
-  public:
-      std::string make_description(const CLI::App *app) const override {
-        return std::string("HELP ") + app->get_description();
-      }
-};
+int cder::ErrorCode = 0;
 
 int main(int argc, const char **argv) {
     char *dbdir_r = std::getenv("CDER_DB_PATH");
     // exists (not NULL) and not empty (first char not \0)
     if (! ( dbdir_r && *dbdir_r )) {
-        std::cerr << "ERR Error: CDER_DB_PATH must be set\n";
+        cder::protocol::send_message(
+            {
+                ERRORF("config",
+                       "getting environmental variable CDER_DB_PATH",
+                       "CDER_DB_PATH must be set prior to the usage of cder")
+            }
+        );
     }
     std::string dbdir{dbdir_r};
 
-    int setupec = cder::db::setup_db(dbdir);
+    cder::protocol::Error e;
+
+    int setupec = cder::db::setup_db(dbdir, e);
     if (setupec) {
+        cder::protocol::send_message(
+            {
+                ERRORF(e.name,
+                       e.action,
+                       e.message)
+            }
+        );
         return setupec;
     }
 
 /* Setup CLI */
     CLI::App app{"cder is a smart wrapper on cd", "cder"};
     app.require_subcommand(1);
-    app.formatter(std::make_shared<HELPPrependFmt>());
 
     app.set_version_flag("-v, --version", std::string("cder version ") + cder::Version);
     app.set_help_all_flag("--help-all", "show all help of each subcommands and exit");
 
     cder::mark::cli::setup_options(app);
 
+    std::ostringstream oss;
     try {
         (app).parse(argc, argv);
     } catch(const CLI::ParseError &e) {
-        if (e.get_exit_code() != 0)
-            std::cerr << "ERR ";
-        return (app).exit(e);
+        int ret = app.exit(e, oss, oss);
+        if (e.get_exit_code() != 0) {
+            cder::protocol::send_message(
+                {
+                    ERRORF("cli", "parsing commandline arguments", oss.str())
+                }
+            );
+        } else {
+            cder::protocol::send_message(
+            {
+                {"CODE", "help"},
+                {"MESSAGE", oss.str()}
+            });
+        }
+        return ret;
     }
 /* End Setup CLI */
 
-    int finalec = cder::db::finalize_db(dbdir);
+    int finalec = cder::db::finalize_db(dbdir, e);
     if (finalec) {
+        cder::protocol::send_message(
+            {
+                ERRORF(e.name,
+                       e.action,
+                       e.message)
+            }
+        );
         return finalec;
     }
 
-    return cder::Error;
+    return cder::ErrorCode;
 }

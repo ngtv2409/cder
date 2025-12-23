@@ -30,6 +30,7 @@ add_executable(
     src/mark.cpp
     src/argparser.cpp
     src/db.cpp
+    src/protocol.cpp
 )
 target_include_directories(cder PRIVATE include)
 target_precompile_headers(cder 
