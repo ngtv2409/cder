@@ -1,6 +1,6 @@
 cder is a cd helper
 
-Version 1.0.0a
+Version 1.0.0
 
 ## Why?
 
@@ -62,5 +62,4 @@ export CDER_DB_PATH=$(realpath ~/.local/share/cder) # or wherever you want
 Now `cder` is available. The last step is to use it in your cd, an example 
 on how to do that can be found in `cder_def.sh`.
 
-If you source `cder_def.sh`, you can `cderm myproj` and jump directly!
 Usage can be found in `--help`.
