@@ -60,6 +60,6 @@ export CDER_DB_PATH=$(realpath ~/.local/share/cder) # or wherever you want
 # Note: the variable is sent directly to filesystem, so it must be full absolute path
 ```
 Now `cder` is available. The last step is to use it in your cd, an example 
-on how to do that can be found in `cder_def.sh`.
+on how to do that can be found in `clients/`.
 
 Usage can be found in `--help`.
