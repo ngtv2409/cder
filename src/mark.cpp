@@ -98,12 +98,6 @@ void cli::setup_options(CLI::App &app) {
                 continue;
             }
             if (m.alias.empty()) {
-                protocol::send_message({
-                    ERRORF("notfound", "getting mark::"+cat+"::"+getopt.alias,
-                            "mark::"+cat+"::"+getopt.alias+" not found"),
-                });
-
-                ErrorCode = 1;
                 continue;
             } else {
                 protocol::send_message({
