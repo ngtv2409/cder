@@ -2,6 +2,9 @@ cder is a cd helper
 
 Version 1.0.1
 
+Demo:
+![Demo GIF](https://github.com/user-attachments/assets/7f29dd3e-6ecc-4ce3-8023-1acec52c1a2f)
+
 ## Why?
 
 Because navigating directories is tedious. Cder allows you to easily
