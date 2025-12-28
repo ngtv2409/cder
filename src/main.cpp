@@ -23,6 +23,7 @@ int main(int argc, const char **argv) {
                        "CDER_DB_PATH must be set prior to the usage of cder")
             }
         );
+        return 1;
     }
     std::string dbdir{dbdir_r};
 
