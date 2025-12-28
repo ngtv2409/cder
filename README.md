@@ -1,65 +1,50 @@
 cder is a cd helper
 
-Version 1.0.0
+Version 1.0.1
 
 ## Why?
 
-Navigating deeply nested project directories is tedious. 
-You either type out long paths repeatedly (cd ~/code/work/clients/acme/backend/services/api), 
-maintain a complex system of shell aliases, or waste time cd-ing through multiple levels.
-Existing solutions like autojump and z try to solve this by tracking your history automatically, 
-but they can be unpredictable - jumping to the wrong directory because you visited it recently, 
-or failing to find directories you rarely visit but need occasionally.
-cder takes a different approach: explicit bookmarks combined with flexible organization. 
-You decide what's important enough to bookmark, organize it with categories, and jump there instantly. 
-No surprises, no learning curve, just direct navigation to where you need to be.
+Because navigating directories is tedious. Cder allows you to easily
+navigate using specialized features. Currently, it supports bookmark or starring
+your directories with an alias (plus category) and use it in a shell wrapper to do the cd, I call 
+them clients, though it probably was not a correct terminology. Anyway, it means
+you can do this.
+```sh
+cda cder /home/me/cder # cder will automatically expand absolute so full path is not mandatory
 
-## What is it
+cdls # this list the aliases in default category
 
-cder is a simple program that manages directory bookmarks and outputs paths in a structured protocol format.
-It doesn't change directories itself - instead, it prints paths that shell wrappers can use to perform navigation.
-The core philosophy: do one thing well. cder manages bookmarks and outputs paths. 
-Your shell handles the actual directory changes. This separation makes cder composable - you can use it in scripts, 
-integrate it with other tools, or build custom workflows around it.
-The protocol-based output (see `PROTOCOL.md`) means the tool is both human-friendly and machine-parseable. 
-Run it directly to see formatted output, or parse its structured responses in shell wrappers and scripts.
+cdm cder # this cd to /home/me/cder
+```
+For more infomation, see `cder --help` or if you want to customize the shell wrapper,
+see [PROTOCOL.md](PROTOCOL.md) and [API.md](API.md) to see what you would expect to get.
+End users only need to interact with the shell wrapper and I have made a decent one in 
+[clients](clients/). Only bash shell for now but I will expand later.
 
-An example usage which implements cderm (go to directory from bookmark) can be found in `cder_def.sh`
+## Dependencies
 
-## Features
-
-- Bookmarking: Give your path an alias and jump without a second thought
-
-- Categories: Organize your bookmarks under a root name 
-
-- Clear protocol: Easily wrap it around a shell
-
-- Lightweight: Just a CLI tool which manages a JSON DB
+If dependencies mean things you need on your computer to use, it is totally standalone
+beside the LibC++17 which allows it to work with filesystem portably. It actually depends 
+also on CLI11 and RapidJson for interface and database, but only during the build process
+(these libraries are header-only).
 
 ## Installation
 
-Installation does require some efforts.
-
-The first step is to build. You clone the repository and build it using cmake.
-Below is the procedure on Linux-like environments:
+To build it from source, follow the following instructions:
 ```sh
 cd ~
-git clone https://github.com/ngtv2409/cder
+git clone --recurse-submodules https://github.com/ngtv2409/cder
 cd cder
-git submodule update --init --recursive
 mkdir build
 cmake -B build
-make -C build # or other build systems
+make -C build
 ```
-After it is built, you get an executable `build/cder`, this is the program we are talking about!
-You may install it to `PATH`.
-Finally you will need to set its database path. Add this go your 
-`.bashrc` (or do the same on your specific shell).
-```sh 
-export CDER_DB_PATH=$(realpath ~/.local/share/cder) # or wherever you want
-# Note: the variable is sent directly to filesystem, so it must be full absolute path
-```
-Now `cder` is available. The last step is to use it in your cd, an example 
-on how to do that can be found in `clients/`.
+After the build process terminate, you get `build/cder`. Install it to your `PATH`.
 
-Usage can be found in `--help`.
+Then, get one of the wrapper from `clients/` and source it in your shell rc file.
+
+The database will be set up in `$CDER_DB_PATH`, do not forget to set it and 
+make sure it is full path or relative to a stable point.
+```sh
+export CDER_DB_PATH="~/.local/share/cder/"
+```

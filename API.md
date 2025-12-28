@@ -1,5 +1,7 @@
 Specification of fields included in responds.
 
+Version 1.0.1
+
 See [Protocol Specification](PROTOCOL.md) for an idea on how to read these output.
 
 # General

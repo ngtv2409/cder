@@ -120,7 +120,7 @@ __cder-select-cd() {
         cder-parse-record fields rec
         if [[ "$?" -ne 0 ]]; then
             echo -e "Error: Failed to parse record <$rec>" | cat -v >&2
-            return 1
+            continue
         fi
         # error handling
         cder-handle-error fields || continue

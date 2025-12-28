@@ -1,5 +1,7 @@
 # Specification of Cder output
 
+Version 1.0.1
+
 Specifies how the shell can interact with cder via a simple IPC protocol.
 
 # Definitions
