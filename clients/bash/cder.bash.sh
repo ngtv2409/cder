@@ -109,7 +109,7 @@ cder-fzf() {
 __cder-select-cd() {
     local -a records
 
-    cder-get-record-array records "$1" 
+    cder-split-record records "$1" 
     local -i entries=0
     local fzfstr=""
     # For each record, if CODE == nul, write to fzfstr
@@ -161,7 +161,7 @@ cda() {
     local out=$(command cder mark add $@)
     local -a records
 
-    cder-get-record-array records out 
+    cder-split-record records out 
     for rec in "${records[@]}"; do
         local -A fields
         cder-parse-record fields rec
@@ -184,7 +184,7 @@ cdls() {
     local out=$(command cder mark list $@)
     local -a records
 
-    cder-get-record-array records out 
+    cder-split-record records out 
     for rec in "${records[@]}"; do
         local -A fields
         cder-parse-record fields rec
@@ -204,10 +204,10 @@ cdls() {
 }
 
 cdrm() {
-    local out=$(command cder mark list $@)
+    local out=$(command cder mark rm $@)
     local -a records
 
-    cder-get-record-array records out 
+    cder-split-record records out 
     for rec in "${records[@]}"; do
         local -A fields
         cder-parse-record fields rec
