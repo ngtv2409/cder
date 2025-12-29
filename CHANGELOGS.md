@@ -1,9 +1,16 @@
 # Changelogs
 
+## [1.0.2]
+
+29-12-2025
+
+### Fixed
+- Invalid memory access due to a missing return
+
 ## [1.0.1]
 Refactor and improve error handling
 
-## Changed
+### Changed
 - Improved code readability in the bash client
 - Stopped emmiting error when `mark get` found nothing.
 
